@@ -63,7 +63,7 @@ class HeatzyClient:
 
         """
         if not self._client or not self.connected:
-            _LOGGER.debug("Not authenticated to a WebSocket, login...")
+            _LOGGER.debug("Login to the %s Websocket", WS_HOST)
             await self._async_login()
 
         if not self._devices:
@@ -97,7 +97,7 @@ class HeatzyClient:
     async def async_get_devices(self) -> dict[str, Any]:
         """Fetch all data."""
         if not self._client or not self.connected:
-            _LOGGER.debug("Not authenticated to a WebSocket, login...")
+            _LOGGER.debug("Login to the %s Websocket", WS_HOST)
             await self._async_login()
 
         bindings = await self.async_bindings()
@@ -113,6 +113,7 @@ class HeatzyClient:
 
                 if message.type == aiohttp.WSMsgType.TEXT:
                     message_data = message.json()
+                    _LOGGER.debug(message_data)
                     device["attrs"] = message_data.get("data", {}).get("attrs", {})
 
                 if message.type in (
@@ -176,7 +177,7 @@ class HeatzyClient:
 
         try:
             self._client = await self.session.ws_connect(url=url)
-            _LOGGER.debug("Connected")
+            _LOGGER.debug("Connected to a %s Websocket", WS_HOST)
         except (
             aiohttp.WSServerHandshakeError,
             aiohttp.ClientConnectionError,
@@ -188,7 +189,7 @@ class HeatzyClient:
     async def _async_login(self) -> None:
         self.authenticated = False
         if not self._client or not self.connected:
-            _LOGGER.debug("Not connected to a WebSocket, connecting...")
+            _LOGGER.debug("Initializing the connection to %s", WS_HOST)
             await self._async_connect()
 
         token_data = await self._auth.async_get_token()
@@ -214,7 +215,7 @@ class HeatzyClient:
             message_data = message.json()
             if message_data.get("data", {}).get("success") is False:
                 raise WebsocketError(message_data)
-            _LOGGER.debug("Logged")
+            _LOGGER.debug("Successfully authenticated to %s Websocket", WS_HOST)
             self.authenticated = True
             asyncio.create_task(self._async_heartbeat())
 
