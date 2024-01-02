@@ -4,7 +4,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import socket
-from typing import Any, Callable, Self
+from collections.abc import Callable
+from typing import Any, Self
 
 import aiohttp  # pylint: disable=import-error
 from aiohttp import ClientSession  # pylint: disable=import-error
