@@ -5,7 +5,7 @@ import asyncio
 import logging
 import socket
 from collections.abc import Callable
-from typing import Any, Self
+from typing import Any, Self, cast
 
 import aiohttp  # pylint: disable=import-error
 from aiohttp import ClientSession  # pylint: disable=import-error
@@ -36,7 +36,9 @@ class HeatzyClient:
         self.session = session
         self.request = self._auth.request
 
-        self._client: aiohttp.ClientWebSocketResponse | None = None
+        self._client: aiohttp.ClientWebSocketResponse = cast(
+            aiohttp.ClientWebSocketResponse, None
+        )
         self._devices: dict[str, Any] = {}
         self.authenticated: bool = False
 
@@ -45,7 +47,7 @@ class HeatzyClient:
         """Return if we are connect to the WebSocket."""
         return self._client is not None and not self._client.closed
 
-    async def async_bindings(self) -> dict[str, dict[str, Any]]:
+    async def async_bindings(self) -> dict[str, list[dict[str, Any]]]:
         """Fetch all configured devices."""
         return await self.request("bindings")
 
@@ -102,7 +104,7 @@ class HeatzyClient:
             await self._async_login()
 
         bindings = await self.async_bindings()
-        devices = bindings.get("devices", [])
+        devices: list[dict[str, Any]] = bindings.get("devices", [])
         for device in devices:
             if isinstance(device, dict) and (did := device.get("did")):
                 read_data = {"cmd": "c2s_read", "data": {"did": did}}
@@ -132,10 +134,10 @@ class HeatzyClient:
         }
         return self._devices
 
-    async def async_get_device(self, device_id: str) -> dict[str, Any]:
+    async def async_get_device(self, device_id: str) -> dict[str, Any] | None:
         """Fetch device with given id."""
         devices = await self.async_get_devices()
-        return devices.get(device_id, {})
+        return devices.get(device_id)
 
     async def async_disconnect(self) -> None:
         """Disconnect from the WebSocket of a device."""
