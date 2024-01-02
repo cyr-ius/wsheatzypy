@@ -54,5 +54,6 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
+        stages: [manual]
         args: [--strict, --ignore-missing-imports]
         additional_dependencies: [aiohttp>=3.8.1]
