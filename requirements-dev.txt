@@ -1,0 +1,7 @@
+# Heatzypy
+-r requirements.txt
+
+flake8
+black
+pre-commit
+pylint
