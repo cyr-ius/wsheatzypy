@@ -106,7 +106,7 @@ class HeatzyClient:
             ):
                 if self._retry > 0:
                     self._retry -= 1
-                    _LOGGER.debug(
+                    _LOGGER.error(
                         "Connection to the WebSocket has been closed, retry (%s)",
                         self._retry,
                     )
@@ -145,8 +145,8 @@ class HeatzyClient:
                 aiohttp.WSMsgType.CLOSED,
                 aiohttp.WSMsgType.CLOSING,
             ):
-                _LOGGER.debug("Connection to the WebSocket has been closed")
-                await self.async_get_devices()
+                msg = f"Connection to the WebSocket on {WS_HOST} has been closed"
+                raise WebsocketError(msg)
 
         return self._devices
 
