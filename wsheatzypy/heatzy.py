@@ -82,9 +82,19 @@ class HeatzyClient:
             if message.type == aiohttp.WSMsgType.TEXT:
                 message_data = message.json()
                 _LOGGER.debug(message_data)
-                if (data := message_data.get("data")) and (did := data.get("did")):
-                    self._devices[did]["attrs"] = data.get("attrs", {})
-                    callback(self._devices)
+                data = message_data.get("data")
+                if isinstance(data, dict):
+                    if error_code := data.get("error_code"):
+                        _LOGGER.debug(
+                            "Websocket encounters errors (%s), retrying connection",
+                            error_code,
+                        )
+                        await self.async_close()
+                        await self.async_ws_listen(callback)
+
+                    if did := data.get("did"):
+                        self._devices[did]["attrs"] = data.get("attrs", {})
+                        callback(self._devices)
 
             if message.type in (
                 aiohttp.WSMsgType.CLOSE,
@@ -101,37 +111,34 @@ class HeatzyClient:
             await self.async_connect()
 
         bindings = await self.async_bindings()
-        devices: list[dict[str, Any]] = bindings.get("devices", [])
-        for device in devices:
-            if isinstance(device, dict) and (did := device.get("did")):
-                read_data = {"cmd": "c2s_read", "data": {"did": did}}
-                await self._client.send_json(read_data)
-                message = await self._client.receive()
-
-                if message.type == aiohttp.WSMsgType.ERROR:
-                    raise ConnectionFailed(self._client.exception())
-
-                if message.type == aiohttp.WSMsgType.TEXT:
-                    message_data = message.json()
-                    if message_data.get("cmd") == "s2c_noti":
-                        _LOGGER.debug(
-                            "===> Device %s: %s", device.get("dev_alias"), message_data
-                        )
-                        device["attrs"] = message_data.get("data", {}).get("attrs", {})
-
-                if message.type in (
-                    aiohttp.WSMsgType.CLOSE,
-                    aiohttp.WSMsgType.CLOSED,
-                    aiohttp.WSMsgType.CLOSING,
-                ):
-                    _LOGGER.debug("Connection to the WebSocket has been closed")
-                    await self.async_get_devices()
-
         self._devices = {
             did: device
-            for device in devices
+            for device in bindings.get("devices", [])
             if isinstance(device, dict) and (did := device.get("did"))
         }
+
+        for did, device in self._devices.items():
+            read_data = {"cmd": "c2s_read", "data": {"did": did}}
+            await self._client.send_json(read_data)
+            message = await self._client.receive()
+
+            if message.type == aiohttp.WSMsgType.ERROR:
+                raise ConnectionFailed(self._client.exception())
+
+            if message.type == aiohttp.WSMsgType.TEXT:
+                message_data = message.json()
+                if message_data.get("cmd") == "s2c_noti":
+                    _LOGGER.debug("=> %s: %s", device.get("dev_alias"), message_data)
+                    device["attrs"] = message_data.get("data", {}).get("attrs", {})
+
+            if message.type in (
+                aiohttp.WSMsgType.CLOSE,
+                aiohttp.WSMsgType.CLOSED,
+                aiohttp.WSMsgType.CLOSING,
+            ):
+                _LOGGER.debug("Connection to the WebSocket has been closed")
+                await self.async_get_devices()
+
         return self._devices
 
     async def async_get_device(self, device_id: str) -> dict[str, Any] | None:
@@ -238,8 +245,9 @@ class HeatzyClient:
             msg = "Not connected to a Heatzy WebSocket"
             raise WebsocketError(msg)
 
-        read_data = {"cmd": "c2s_read", "data": {"did": device_id}}
-        await self._client.send_json(read_data)
+        c2s = {"cmd": "c2s_read", "data": {"did": device_id}}
+        _LOGGER.debug(c2s)
+        await self._client.send_json(c2s)
 
     async def async_get_event_devices(self) -> None:
         """Return all devices data while listen connection."""
@@ -248,8 +256,9 @@ class HeatzyClient:
             raise WebsocketError(msg)
 
         for device_id in self._devices:
-            read_data = {"cmd": "c2s_read", "data": {"did": device_id}}
-            await self._client.send_json(read_data)
+            c2s = {"cmd": "c2s_read", "data": {"did": device_id}}
+            _LOGGER.debug(c2s)
+            await self._client.send_json(c2s)
 
     async def async_control_event(
         self, device_id: str, payload: dict[str, Any]
@@ -259,5 +268,6 @@ class HeatzyClient:
             raise WebsocketError(msg)
 
         cmd = "c2s_raw" if payload.get("raw") else "c2s_write"
-        c2s_raw = {"cmd": cmd, "data": {"did": device_id, **payload}}
-        await self._client.send_json(c2s_raw)
+        c2s = {"cmd": cmd, "data": {"did": device_id, **payload}}
+        _LOGGER.debug(c2s)
+        await self._client.send_json(c2s)
