@@ -40,10 +40,9 @@ class HeatzyClient:
             aiohttp.ClientWebSocketResponse, None
         )
         self._devices: dict[str, Any] = {}
-        self.authenticated: bool = False
 
     @property
-    def connected(self) -> bool:
+    def is_connected(self) -> bool:
         """Return if we are connect to the WebSocket."""
         return self._client is not None and not self._client.closed
 
@@ -65,7 +64,7 @@ class HeatzyClient:
             callback: Method to call when a state update is received from the device.
 
         """
-        if not self._client or not self.connected:
+        if not self._client or not self.is_connected:
             _LOGGER.debug("Connect to the %s Websocket", WS_HOST)
             await self.async_connect()
 
@@ -97,7 +96,7 @@ class HeatzyClient:
 
     async def async_get_devices(self) -> dict[str, Any]:
         """Fetch all data."""
-        if not self._client or not self.connected:
+        if not self._client or not self.is_connected:
             _LOGGER.debug("Login to the %s Websocket", WS_HOST)
             await self.async_connect()
 
@@ -142,7 +141,7 @@ class HeatzyClient:
 
     async def async_disconnect(self) -> None:
         """Disconnect from the WebSocket of a device."""
-        if not self._client or not self.connected:
+        if not self._client or not self.is_connected:
             return
 
         await self._client.close()
@@ -170,7 +169,7 @@ class HeatzyClient:
 
     async def async_connect(self) -> None:
         """Connect to the WebSocket."""
-        if self.connected:
+        if self.is_connected:
             return
 
         if not self.session:
@@ -190,15 +189,13 @@ class HeatzyClient:
             msg = f"Error occurred while communicating with device on WebSocket at {WS_HOST}"
             raise ConnectionFailed(msg) from exception
 
-        if not self.authenticated:
-            try:
-                await self.async_login()
-            except WebsocketError as error:
-                raise WebsocketError("Error occurred while authentication (%s)", error)
+        try:
+            await self.async_login()
+        except WebsocketError as error:
+            raise WebsocketError("Error occurred while authentication (%s)", error)
 
     async def async_login(self) -> None:
-        self.authenticated = False
-        if not self._client or not self.connected:
+        if not self._client or not self.is_connected:
             msg = "Not connected to a Heatzy WebSocket"
             raise WebsocketError(msg)
 
@@ -226,7 +223,6 @@ class HeatzyClient:
             if message_data.get("data", {}).get("success") is False:
                 raise WebsocketError(message_data)
             _LOGGER.debug("Successfully authenticated to %s Websocket", WS_HOST)
-            self.authenticated = True
 
         if message.type in (
             aiohttp.WSMsgType.CLOSE,
@@ -238,7 +234,7 @@ class HeatzyClient:
 
     async def async_get_event_device(self, device_id) -> None:
         """Return device data while listen connection."""
-        if not self._client or not self.connected:
+        if not self._client or not self.is_connected:
             msg = "Not connected to a Heatzy WebSocket"
             raise WebsocketError(msg)
 
@@ -247,7 +243,7 @@ class HeatzyClient:
 
     async def async_get_event_devices(self) -> None:
         """Return all devices data while listen connection."""
-        if not self._client or not self.connected:
+        if not self._client or not self.is_connected:
             msg = "Not connected to a Heatzy WebSocket"
             raise WebsocketError(msg)
 
@@ -258,7 +254,7 @@ class HeatzyClient:
     async def async_control_event(
         self, device_id: str, payload: dict[str, Any]
     ) -> None:
-        if not self._client or not self.connected:
+        if not self._client or not self.is_connected:
             msg = "Not connected to a Heatzy WebSocket"
             raise WebsocketError(msg)
 
