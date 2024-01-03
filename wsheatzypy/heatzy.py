@@ -17,7 +17,7 @@ from .exception import ConnectionClose, ConnectionFailed, WebsocketError
 
 _LOGGER = logging.getLogger(__name__)
 HEARTBEAT_INTERVAL = 30
-
+RETRY = 3
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -40,6 +40,7 @@ class HeatzyClient:
             aiohttp.ClientWebSocketResponse, None
         )
         self._devices: dict[str, Any] = {}
+        self._retry = RETRY
 
     @property
     def is_connected(self) -> bool:
@@ -85,13 +86,15 @@ class HeatzyClient:
                 data = message_data.get("data")
                 if isinstance(data, dict):
                     if error_code := data.get("error_code"):
-                        _LOGGER.debug(
-                            "Websocket encounters errors (%s), retrying connection",
-                            error_code,
+                        _LOGGER.error("Websocket encounters errors (%s)", error_code)
+                        if self._retry > 0:
+                            self._retry -= 1
+                            await self.async_disconnect()
+                            return await self.async_ws_listen(callback)
+                        raise WebsocketError(
+                            "Websocket encountered too many errors. It was interrupted"
                         )
-                        await self.async_close()
-                        await self.async_ws_listen(callback)
-
+                    self._retry = 3
                     if did := data.get("did"):
                         self._devices[did]["attrs"] = data.get("attrs", {})
                         callback(self._devices)
@@ -101,8 +104,14 @@ class HeatzyClient:
                 aiohttp.WSMsgType.CLOSED,
                 aiohttp.WSMsgType.CLOSING,
             ):
-                _LOGGER.debug("Connection to the WebSocket has been closed")
-                await self.async_ws_listen(callback)
+                if self._retry > 0:
+                    self._retry -= 1
+                    _LOGGER.debug(
+                        "Connection to the WebSocket has been closed, retry (%s)",
+                        self._retry,
+                    )
+                    await self.async_ws_listen(callback)
+                raise WebsocketError("Connection to the WebSocket has been closed")
 
     async def async_get_devices(self) -> dict[str, Any]:
         """Fetch all data."""
