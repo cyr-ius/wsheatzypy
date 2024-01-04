@@ -7,9 +7,8 @@ import socket
 from typing import TYPE_CHECKING, Any, Callable, cast
 
 import aiohttp
-from yarl import URL
 
-from .const import HEATZY_APPLICATION_ID, WS_HOST, WS_PING_INTERVAL, WS_PORT
+from .const import HEATZY_APPLICATION_ID, WS_HOST, WS_PING_INTERVAL, WSS_URL
 from .exception import AuthenticationFailed, ConnectionFailed, WebsocketError
 
 _LOGGER = logging.getLogger(__name__)
@@ -114,10 +113,8 @@ class Websocket:
             msg = f"The device at {WS_HOST} does not support WebSockets"
             raise WebsocketError(msg)
 
-        url = URL.build(scheme="ws", host=WS_HOST, port=WS_PORT, path="/ws/app/v1")
-
         try:
-            self._client = await self.session.ws_connect(url=url)
+            self._client = await self.session.ws_connect(url=WSS_URL)
             _LOGGER.debug("WEBSOCKET Connected to a %s Websocket", WS_HOST)
         except (
             aiohttp.WSServerHandshakeError,
