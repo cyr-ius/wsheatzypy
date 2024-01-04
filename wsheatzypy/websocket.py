@@ -53,7 +53,7 @@ class Websocket:
 
         c2s = {"cmd": "c2s_read", "data": {"did": device_id}}
         _LOGGER.debug("WEBSOCKET >>> %s", c2s)
-        await asyncio.wait_for(self._client.send_json(c2s), 60)
+        await self._client.send_json(c2s)
 
         return self.bindings.get(device_id)
 
@@ -66,7 +66,7 @@ class Websocket:
         for did in self.bindings:
             c2s = {"cmd": "c2s_read", "data": {"did": did}}
             _LOGGER.debug("WEBSOCKET >>> %s", c2s)
-            await asyncio.wait_for(self._client.send_json(c2s), 60)
+            await self._client.send_json(c2s)
 
         return self.bindings
 
@@ -153,7 +153,7 @@ class Websocket:
             },
         }
         _LOGGER.debug("WEBSOCKET >>> %s", c2s)
-        await asyncio.wait_for(self._client.send_json(c2s), 60)
+        await self._client.send_json(c2s)
 
     async def async_listen(
         self,
@@ -161,6 +161,7 @@ class Websocket:
         callbackChange: Callable[..., None] | None = None,
         callbackStatus: Callable[..., None] | None = None,
         all_devices=False,
+        event: asyncio.Event | None = None,
     ) -> None:
         """Listen for events on the WebSocket.
 
@@ -171,6 +172,7 @@ class Websocket:
             callbackStatus: Method to call when the device goes online or offline.
             all_devices: set True , returns all devices in the callback
             instead of the device that performed the update
+            event: trigger Event.set()
         """
         if not self._client or not self.is_connected:
             _LOGGER.debug("WEBSOCKET Connect to the %s Websocket", WS_HOST)
@@ -187,6 +189,9 @@ class Websocket:
 
         while not self._client.closed:
             message = await self._client.receive()
+
+            if event:
+                event.set()
 
             if message.type == aiohttp.WSMsgType.ERROR:
                 raise ConnectionFailed(self._client.exception())
