@@ -32,7 +32,6 @@ class Websocket:
         self.devices: dict[str, Any] = {}
         self._retry: int = retry
         self._return_all: bool = False
-        self.event = asyncio.Event()
 
     @property
     def is_connected(self) -> bool:
@@ -46,32 +45,28 @@ class Websocket:
             device["did"]: device for device in bindings.get("devices", {})
         }
 
-    async def async_get_device(self, device_id, wait: bool = False) -> None:
+    async def async_get_device(self, device_id) -> None:
         """Return device data while listen connection."""
         if not self._client or not self.is_connected:
             msg = "Not connected to a Heatzy WebSocket"
             raise WebsocketError(msg)
 
-        if wait:
-            await self.event.wait()
         c2s = {"cmd": "c2s_read", "data": {"did": device_id}}
         _LOGGER.debug("WEBSOCKET >>> %s", c2s)
-        await self._client.send_json(c2s)
+        await asyncio.wait_for(self._client.send_json(c2s), 60)
 
         return self.bindings.get(device_id)
 
-    async def async_get_devices(self, wait: bool = False) -> None:
+    async def async_get_devices(self) -> None:
         """Return all devices data while listen connection."""
         if not self._client or not self.is_connected:
             msg = "Not connected to a Heatzy WebSocket"
             raise WebsocketError(msg)
 
-        if wait:
-            await self.event.wait()
         for did in self.bindings:
             c2s = {"cmd": "c2s_read", "data": {"did": did}}
             _LOGGER.debug("WEBSOCKET >>> %s", c2s)
-            await self._client.send_json(c2s)
+            await asyncio.wait_for(self._client.send_json(c2s), 60)
 
         return self.bindings
 
@@ -158,7 +153,7 @@ class Websocket:
             },
         }
         _LOGGER.debug("WEBSOCKET >>> %s", c2s)
-        await self._client.send_json(c2s)
+        await asyncio.wait_for(self._client.send_json(c2s), 60)
 
     async def async_listen(
         self,
@@ -191,7 +186,6 @@ class Websocket:
         asyncio.create_task(self._async_heartbeat())
 
         while not self._client.closed:
-            self.event.set()
             message = await self._client.receive()
 
             if message.type == aiohttp.WSMsgType.ERROR:
