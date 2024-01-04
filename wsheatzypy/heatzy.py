@@ -7,7 +7,7 @@ from typing import Any, Self
 from aiohttp import ClientSession
 
 from .auth import Auth
-from .const import RETRY, TIMEOUT
+from .const import TIMEOUT
 from .websocket import Websocket
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,11 +22,10 @@ class HeatzyClient:
         password: str,
         session: ClientSession = ClientSession(),
         time_out: int = TIMEOUT,
-        retry_connection: int = RETRY,
     ) -> None:
         """Load parameters."""
         self._auth = Auth(session, username, password, time_out)
-        self.websocket = Websocket(session, self._auth, retry_connection)
+        self.websocket = Websocket(session, self._auth)
         self.session = session
         self.request = self._auth.request
 

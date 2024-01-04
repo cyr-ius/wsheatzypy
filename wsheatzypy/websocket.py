@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 class Websocket:
     """Heatzy websocket."""
 
-    def __init__(self, session: aiohttp.ClientSession, auth: Auth, retry: int) -> None:
+    def __init__(self, session: aiohttp.ClientSession, auth: Auth) -> None:
         """Initialize."""
         self.session = session
         self._auth = auth
@@ -30,7 +30,6 @@ class Websocket:
         )
         self.bindings: dict[str, Any] = {}
         self.devices: dict[str, Any] = {}
-        self._retry: int = retry
         self._return_all: bool = False
 
     @property
@@ -203,35 +202,22 @@ class Websocket:
                 if isinstance(data, dict):
                     match message_data.get("cmd"):
                         case "s2c_invalid_msg":
-                            if data.get("error_code") == 1003:
-                                await self.async_login()
-                                continue
-                            _LOGGER.error(
-                                "WEBSOCKET encounters errors (%s)", data.get("msg")
-                            )
-                            if self._retry > 0:
-                                self._retry -= 1
-                                await self.async_disconnect()
-                                return await self.async_listen(callback)
                             raise WebsocketError(
-                                "WEBSOCKET encountered too many errors. It was interrupted"
+                                "WEBSOCKET Invalid message (%s)", message_data
                             )
                         case "login_res":
-                            self._retry = 3
                             if message_data.get("data", {}).get("success") is False:
                                 raise AuthenticationFailed(message_data)
                             _LOGGER.debug(
                                 "WEBSOCKET Successfully authenticated to %s", WS_HOST
                             )
                         case "s2c_noti":
-                            self._retry = 3
                             if callback:
                                 if self._return_all is False:
                                     callback(data)
                                 elif self.merge_data(self.bindings, data):
                                     callback(self.bindings)
                         case "s2c_binding_changed":
-                            self._retry = 3
                             await self.async_bindings()
                             if (did := data.get("did")) and data.get("bind"):
                                 await self.async_get_device(did)
@@ -240,27 +226,18 @@ class Websocket:
                             if callbackChange:
                                 callbackChange(data)
                         case "s2c_online_status":
-                            self._retry = 3
                             if did := data.get("did"):
                                 await self.async_get_device(did)
                             if callbackStatus:
                                 callbackStatus(data)
                         case "pong":
-                            self._retry = 3
+                            pass
 
             if message.type in (
                 aiohttp.WSMsgType.CLOSE,
                 aiohttp.WSMsgType.CLOSED,
                 aiohttp.WSMsgType.CLOSING,
             ):
-                if self._retry > 0:
-                    self._retry -= 1
-                    _LOGGER.error(
-                        "Connection to the WebSocket has been closed, retry (%s)",
-                        self._retry,
-                    )
-                    await self.async_connect()
-                    await self.async_listen(callback, callbackChange, callbackStatus)
                 raise WebsocketError("Connection to the WebSocket has been closed")
 
     async def async_disconnect(self) -> None:

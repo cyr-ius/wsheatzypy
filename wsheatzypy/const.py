@@ -4,5 +4,4 @@ HEATZY_API_URL = "https://euapi.gizwits.com/app"
 WS_PING_INTERVAL = 30
 WS_HOST = "eusandbox.gizwits.com"
 WS_PORT = 8080
-RETRY = 5
 TIMEOUT = 120
