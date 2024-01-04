@@ -33,5 +33,5 @@ class ConnectionFailed(WebsocketError):
     """Connection exception."""
 
 
-class ConnectionClose(WebsocketError):
+class ConnectionClosed(WebsocketError):
     """Connection exception."""
