@@ -43,7 +43,7 @@ class Websocket:
             device["did"]: device for device in bindings.get("devices", {})
         }
 
-    async def async_get_device(self, device_id) -> None:
+    async def async_get_device(self, device_id: str) -> dict[str, Any] | None:
         """Return device data while listen connection."""
         if not self._client or not self.is_connected:
             msg = "Not connected to a Heatzy WebSocket"
@@ -55,7 +55,7 @@ class Websocket:
 
         return self.bindings.get(device_id)
 
-    async def async_get_devices(self) -> None:
+    async def async_get_devices(self) -> dict[str, Any]:
         """Return all devices data while listen connection."""
         if not self._client or not self.is_connected:
             msg = "Not connected to a Heatzy WebSocket"
@@ -95,7 +95,7 @@ class Websocket:
             await self._client.send_json(c2s)
             await asyncio.sleep(WS_PING_INTERVAL)
 
-    async def async_connect(self, auto_subscribe=True) -> None:
+    async def async_connect(self, auto_subscribe: bool = True) -> None:
         """Connect to the WebSocket.
 
         Args:
@@ -129,7 +129,7 @@ class Websocket:
         except WebsocketError as error:
             raise AuthenticationFailed(error) from error
 
-    async def async_login(self, auto_subscribe=True) -> None:
+    async def async_login(self, auto_subscribe: bool = True) -> None:
         """Login to websocket."""
         if not self._client or not self.is_connected:
             msg = "Not connected to a Heatzy WebSocket"
@@ -156,7 +156,7 @@ class Websocket:
         callback: Callable[..., None] | None = None,
         callbackChange: Callable[..., None] | None = None,
         callbackStatus: Callable[..., None] | None = None,
-        all_devices=False,
+        all_devices: bool = False,
         event: asyncio.Event | None = None,
     ) -> None:
         """Listen for events on the WebSocket.
@@ -264,7 +264,7 @@ class Websocket:
         await self._client.send_json(c2s)
 
     @staticmethod
-    def merge_data(bindings, data) -> bool:
+    def merge_data(bindings: dict[str, Any], data: dict[str, Any]) -> bool:
         """Merge data."""
         if bindings and (did := data.get("did")) and (device := bindings.get(did)):
             device["attrs"] = data.get("attrs", {})
