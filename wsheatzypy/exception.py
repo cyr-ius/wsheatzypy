@@ -25,6 +25,10 @@ class TimeoutExceededError(HeatzyException):
     """Timeout exception."""
 
 
+class UnexpectedResponse(HeatzyException):
+    """Unexpected response exception."""
+
+
 class WebsocketError(HeatzyException):
     """Websocket exception."""
 
