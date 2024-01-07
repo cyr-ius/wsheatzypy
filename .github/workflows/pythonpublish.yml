@@ -29,12 +29,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install setuptools wheel twine build
 
-      - name: 🔢 Set version number
-        run: |
-          export version=${{ github.ref }}
-          sed -i "s|replace_by_workflow|${version##*/}|" ./pyproject.toml
-          cat ./pyproject.toml
-
       - name: Build package
         shell: bash
         run: |

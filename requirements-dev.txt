@@ -10,3 +10,4 @@ python-typing-update
 ruff
 types-pytz
 yamllint
+setuptools-scm
