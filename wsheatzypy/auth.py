@@ -10,7 +10,7 @@ from typing import Any
 
 from aiohttp import ClientError, ClientResponseError, ClientSession
 
-from .const import HEATZY_API_URL, HEATZY_APPLICATION_ID
+from .const import HEATZY_API_URL, HEATZY_APPLICATION_ID, RETRY
 from .exception import (
     AuthenticationFailed,
     CommandFailed,
@@ -21,7 +21,6 @@ from .exception import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-RETRY = 3
 
 
 class Auth:

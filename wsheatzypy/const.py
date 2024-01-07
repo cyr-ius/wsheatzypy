@@ -10,3 +10,4 @@ WS_URL = yurl.build(scheme="ws", host=WS_HOST, port=WS_PORT, path="/ws/app/v1")
 TIMEOUT = 120
 WSS_PORT = 8880
 WSS_URL = yurl.build(scheme="wss", host=WS_HOST, port=WSS_PORT, path="/ws/app/v1")
+RETRY = 3
