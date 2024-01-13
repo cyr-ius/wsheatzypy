@@ -78,7 +78,7 @@ class Websocket:
 
         return self.bindings
 
-    async def async_control(
+    async def async_control_device(
         self, device_id: str, payload: dict[str, dict[str, Any]]
     ) -> None:
         """Send command to device.
