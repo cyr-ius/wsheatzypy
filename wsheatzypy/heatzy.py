@@ -44,8 +44,8 @@ class HeatzyClient:
         devices = {device["did"]: device for device in response.get("devices", {})}
         for did, device in devices.items():
             device_data = await self.async_get_device_data(did)
+            device_data["attrs"] = device_data.pop("attr", {})
             device.update(**device_data)
-
         return devices
 
     async def async_get_device(self, device_id: str) -> dict[str, Any]:
