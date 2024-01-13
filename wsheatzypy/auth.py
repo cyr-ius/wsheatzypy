@@ -21,7 +21,7 @@ from .exception import (
     UnexpectedResponse,
 )
 
-_LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class Auth:
@@ -65,8 +65,8 @@ class Auth:
                 url = yurl.build(
                     scheme=self._scheme, host=self._host, path=f"/app/{url}"
                 )
-                _LOGGER.debug("METHOD:%s URL:%s", method, url)
-                _LOGGER.debug("DATA:%s", json)
+                logger.debug("METHOD:%s URL:%s", method, url)
+                logger.debug("DATA:%s", json)
                 response = await self._session.request(
                     method, url, json=json, headers=headers
                 )
@@ -101,7 +101,7 @@ class Auth:
         except JSONDecodeError as error:
             raise UnexpectedResponse(f"Error while decoding Json ({error})") from error
 
-        _LOGGER.debug("RESPONSE: %s", json_response)
+        logger.debug("RESPONSE: %s", json_response)
         return json_response
 
     async def async_get_token(self) -> dict[str, Any]:

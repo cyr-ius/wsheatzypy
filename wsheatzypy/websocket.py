@@ -12,10 +12,10 @@ from yarl import URL as yurl
 from .const import APPLICATION_ID, WS_PING_INTERVAL, WS_PORT, WSS_PORT
 from .exception import AuthenticationFailed, ConnectionFailed, WebsocketError
 
-_LOGGER = logging.getLogger(__name__)
-
 if TYPE_CHECKING:
     from .auth import Auth
+
+logger = logging.getLogger(__name__)
 
 
 class Websocket:
@@ -60,7 +60,7 @@ class Websocket:
             raise WebsocketError(msg)
 
         c2s = {"cmd": "c2s_read", "data": {"did": device_id}}
-        _LOGGER.debug("WEBSOCKET >>> %s", c2s)
+        logger.debug("WEBSOCKET >>> %s", c2s)
         await self._client.send_json(c2s)
 
         return self.bindings.get(device_id)
@@ -73,7 +73,7 @@ class Websocket:
 
         for did in self.bindings:
             c2s = {"cmd": "c2s_read", "data": {"did": did}}
-            _LOGGER.debug("WEBSOCKET >>> %s", c2s)
+            logger.debug("WEBSOCKET >>> %s", c2s)
             await self._client.send_json(c2s)
 
         return self.bindings
@@ -93,14 +93,14 @@ class Websocket:
             raise WebsocketError(msg)
 
         c2s = {"cmd": "c2s_write", "data": {"did": device_id, **payload}}
-        _LOGGER.debug("WEBSOCKET >>> %s", c2s)
+        logger.debug("WEBSOCKET >>> %s", c2s)
         await self._client.send_json(c2s)
 
     async def _async_heartbeat(self) -> None:
         """Heatbeat websocket."""
         while not self._client.closed:
             c2s = {"cmd": "ping"}
-            _LOGGER.debug("WEBSOCKET >>> %s", c2s)
+            logger.debug("WEBSOCKET >>> %s", c2s)
             await self._client.send_json(c2s)
             await asyncio.sleep(WS_PING_INTERVAL)
 
@@ -127,7 +127,7 @@ class Websocket:
                 scheme=self._scheme, host=self._host, port=self._port, path="/ws/app/v1"
             )
             self._client = await self.session.ws_connect(url=url)
-            _LOGGER.debug("WEBSOCKET Connected to a %s Websocket", url)
+            logger.debug("WEBSOCKET Connected to a %s Websocket", url)
         except (
             aiohttp.WSServerHandshakeError,
             aiohttp.ClientConnectionError,
@@ -162,7 +162,7 @@ class Websocket:
                 "auto_subscribe": auto_subscribe,
             },
         }
-        _LOGGER.debug("WEBSOCKET >>> %s", c2s)
+        logger.debug("WEBSOCKET >>> %s", c2s)
         await self._client.send_json(c2s)
 
     async def async_listen(
@@ -185,7 +185,7 @@ class Websocket:
             event: trigger Event.set()
         """
         if not self._client or not self.is_connected:
-            _LOGGER.debug("WEBSOCKET Connect to the websocket")
+            logger.debug("WEBSOCKET Connect to the websocket")
             await self.async_connect()
 
         try:
@@ -208,7 +208,7 @@ class Websocket:
 
             if message.type == aiohttp.WSMsgType.TEXT:
                 message_data = message.json()
-                _LOGGER.debug("WEBSOCKET <<< %s", message_data)
+                logger.debug("WEBSOCKET <<< %s", message_data)
                 data = message_data.get("data")
                 if isinstance(data, dict):
                     match message_data.get("cmd"):
@@ -219,7 +219,7 @@ class Websocket:
                         case "login_res":
                             if message_data.get("data", {}).get("success") is False:
                                 raise AuthenticationFailed(message_data)
-                            _LOGGER.debug("WEBSOCKET Successfully authenticated")
+                            logger.debug("WEBSOCKET Successfully authenticated")
                         case "s2c_noti":
                             if callback:
                                 if self._return_all is False:
@@ -272,7 +272,7 @@ class Websocket:
         dids = [{"did": did} for did in device_ids]
 
         c2s = {"cmd": "subscribe_req", "data": dids}
-        _LOGGER.debug("WEBSOCKET >>> %s", c2s)
+        logger.debug("WEBSOCKET >>> %s", c2s)
         await self._client.send_json(c2s)
 
     @staticmethod

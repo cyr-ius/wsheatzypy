@@ -10,7 +10,7 @@ from .auth import Auth
 from .const import DFLT_API_URL, EU_API_URL, TIMEOUT, US_API_URL, WS_HOST
 from .websocket import Websocket
 
-_LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class HeatzyClient:
