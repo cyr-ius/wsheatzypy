@@ -76,14 +76,13 @@ class Websocket:
         Args:
         ----
             - payload: raw or attrs dictionary containing the actions dictionary
-             {"raw": {"mode":[1,1,3]}} or {"attrs": {"mode": "cft"} }
+             {"raw": [1,1,3]} or {"attrs": {"mode": "cft"} }
         """
         if not self._client or not self.is_connected:
             msg = "Not connected to a Heatzy WebSocket"
             raise WebsocketError(msg)
 
-        cmd = "c2s_raw" if payload.get("raw") else "c2s_write"
-        c2s = {"cmd": cmd, "data": {"did": device_id, **payload}}
+        c2s = {"cmd": "c2s_write", "data": {"did": device_id, **payload}}
         _LOGGER.debug("WEBSOCKET >>> %s", c2s)
         await self._client.send_json(c2s)
 
