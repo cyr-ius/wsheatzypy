@@ -40,7 +40,7 @@ class Auth:
     async def request(
         self,
         url: str,
-        method: str = "GET",
+        method: str = "get",
         json: dict[str, Any] | None = None,
         auth: bool = False,
     ) -> dict[str, Any]:
@@ -60,13 +60,13 @@ class Auth:
                 )
                 response.raise_for_status()
         except ClientResponseError as error:
-            if method == "GET":
+            if method == "get":
                 raise RetrieveFailed(f"{url} not retrieved ({error.status})") from error
             if url == "login":
                 raise AuthenticationFailed(
                     f"{error.message} ({error.status})"
                 ) from error
-            if method == "POST" and error.status in [400, 500, 502] and self._retry > 0:
+            if method == "post" and error.status in [400, 500, 502] and self._retry > 0:
                 self._retry -= 1
                 await asyncio.sleep(3)
                 return await self.request(url, method, json, auth)
@@ -100,6 +100,6 @@ class Auth:
         ):
             payload = {"username": self._username, "password": self._password}
             self._access_token = await self.request(
-                "login", method="POST", json=payload, auth=True
+                "login", method="post", json=payload, auth=True
             )
         return self._access_token

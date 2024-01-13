@@ -63,7 +63,7 @@ class HeatzyClient:
         self, device_id: str, payload: dict[str, Any]
     ) -> None:
         """Control state of device with given id."""
-        await self.request(f"control/{device_id}", method="POST", json=payload)
+        await self.request(f"control/{device_id}", method="post", json=payload)
 
     async def async_close(self) -> None:
         """Close open client (WebSocket) session."""
