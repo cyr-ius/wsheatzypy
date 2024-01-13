@@ -9,8 +9,9 @@ import time
 from typing import Any
 
 from aiohttp import ClientError, ClientResponseError, ClientSession
+from yarl import URL as yurl
 
-from .const import HEATZY_API_URL, HEATZY_APPLICATION_ID, RETRY
+from .const import APPLICATION_ID, RETRY
 from .exception import (
     AuthenticationFailed,
     CommandFailed,
@@ -27,7 +28,13 @@ class Auth:
     """Class to make authenticated requests."""
 
     def __init__(
-        self, session: ClientSession | None, username: str, password: str, timeout: int
+        self,
+        session: ClientSession | None,
+        username: str,
+        password: str,
+        timeout: int,
+        host: str,
+        use_tls: bool = True,
     ):
         """Initialize the auth."""
         self._session = session or ClientSession()
@@ -36,6 +43,8 @@ class Auth:
         self._access_token: dict[str, Any] | None = None
         self._timeout: int = timeout
         self._retry = RETRY
+        self._host = host
+        self._scheme = "https" if use_tls else "http"
 
     async def request(
         self,
@@ -45,18 +54,21 @@ class Auth:
         auth: bool = False,
     ) -> dict[str, Any]:
         """Make a request."""
-        headers: dict[str, Any] = {"X-Gizwits-Application-Id": HEATZY_APPLICATION_ID}
+        headers: dict[str, Any] = {"X-Gizwits-Application-Id": APPLICATION_ID}
 
         if auth is False:
             access_token = await self.async_get_token()
             headers["X-Gizwits-User-Token"] = access_token.get("token")
 
         try:
-            _LOGGER.debug("METHOD:%s URL:%s", method, url)
-            _LOGGER.debug("DATA:%s", json)
             async with asyncio.timeout(self._timeout):
+                url = yurl.build(
+                    scheme=self._scheme, host=self._host, path=f"/app/{url}"
+                )
+                _LOGGER.debug("METHOD:%s URL:%s", method, url)
+                _LOGGER.debug("DATA:%s", json)
                 response = await self._session.request(
-                    method, f"{HEATZY_API_URL}/{url}", json=json, headers=headers
+                    method, url, json=json, headers=headers
                 )
                 response.raise_for_status()
         except ClientResponseError as error:

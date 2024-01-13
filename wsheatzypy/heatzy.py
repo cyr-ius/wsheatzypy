@@ -7,7 +7,7 @@ from typing import Any, Self
 from aiohttp import ClientSession
 
 from .auth import Auth
-from .const import TIMEOUT
+from .const import DFLT_API_URL, EU_API_URL, TIMEOUT, US_API_URL, WS_HOST
 from .websocket import Websocket
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,10 +22,19 @@ class HeatzyClient:
         password: str,
         session: ClientSession = ClientSession(),
         time_out: int = TIMEOUT,
+        region: str = "EU",
+        use_tls: bool = True,
     ) -> None:
         """Load parameters."""
-        self._auth = Auth(session, username, password, time_out)
-        self.websocket = Websocket(session, self._auth)
+        if region == "EU":
+            host = EU_API_URL
+        elif region == "US":
+            host = US_API_URL
+        else:
+            host = DFLT_API_URL
+
+        self._auth = Auth(session, username, password, time_out, host, use_tls)
+        self.websocket = Websocket(session, self._auth, WS_HOST, use_tls)
         self.session = session
         self.request = self._auth.request
 

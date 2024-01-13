@@ -7,8 +7,9 @@ import socket
 from typing import TYPE_CHECKING, Any, Callable, cast
 
 import aiohttp
+from yarl import URL as yurl
 
-from .const import HEATZY_APPLICATION_ID, WS_HOST, WS_PING_INTERVAL, WSS_URL
+from .const import APPLICATION_ID, WS_PING_INTERVAL, WS_PORT, WSS_PORT
 from .exception import AuthenticationFailed, ConnectionFailed, WebsocketError
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,7 +21,13 @@ if TYPE_CHECKING:
 class Websocket:
     """Heatzy websocket."""
 
-    def __init__(self, session: aiohttp.ClientSession, auth: Auth) -> None:
+    def __init__(
+        self,
+        session: aiohttp.ClientSession,
+        auth: Auth,
+        host: str,
+        use_tls: bool = True,
+    ) -> None:
         """Initialize."""
         self.session = session
         self._auth = auth
@@ -30,6 +37,9 @@ class Websocket:
         self.bindings: dict[str, Any] = {}
         self.devices: dict[str, Any] = {}
         self._return_all: bool = False
+        self._host = host
+        self._scheme = "wss" if use_tls else "ws"
+        self._port = WSS_PORT if use_tls else WS_PORT
 
     @property
     def is_connected(self) -> bool:
@@ -109,18 +119,23 @@ class Websocket:
             await self.async_bindings()
 
         if not self.session:
-            msg = f"The device at {WS_HOST} does not support WebSockets"
+            msg = "The device does not support WebSockets"
             raise WebsocketError(msg)
 
         try:
-            self._client = await self.session.ws_connect(url=WSS_URL)
-            _LOGGER.debug("WEBSOCKET Connected to a %s Websocket", WS_HOST)
+            url = yurl.build(
+                scheme=self._scheme, host=self._host, port=self._port, path="/ws/app/v1"
+            )
+            self._client = await self.session.ws_connect(url=url)
+            _LOGGER.debug("WEBSOCKET Connected to a %s Websocket", url)
         except (
             aiohttp.WSServerHandshakeError,
             aiohttp.ClientConnectionError,
             socket.gaierror,
         ) as exception:
-            msg = f"Error occurred while communicating with device on WebSocket at {WS_HOST}"
+            msg = (
+                f"Error occurred while communicating with device on WebSocket at {url}"
+            )
             raise ConnectionFailed(msg) from exception
 
         try:
@@ -139,7 +154,7 @@ class Websocket:
         c2s = {
             "cmd": "login_req",
             "data": {
-                "appid": HEATZY_APPLICATION_ID,
+                "appid": APPLICATION_ID,
                 "uid": token_data.get("uid"),
                 "token": token_data.get("token"),
                 "p0_type": "attrs_v4",
@@ -170,7 +185,7 @@ class Websocket:
             event: trigger Event.set()
         """
         if not self._client or not self.is_connected:
-            _LOGGER.debug("WEBSOCKET Connect to the %s Websocket", WS_HOST)
+            _LOGGER.debug("WEBSOCKET Connect to the websocket")
             await self.async_connect()
 
         try:
@@ -204,9 +219,7 @@ class Websocket:
                         case "login_res":
                             if message_data.get("data", {}).get("success") is False:
                                 raise AuthenticationFailed(message_data)
-                            _LOGGER.debug(
-                                "WEBSOCKET Successfully authenticated to %s", WS_HOST
-                            )
+                            _LOGGER.debug("WEBSOCKET Successfully authenticated")
                         case "s2c_noti":
                             if callback:
                                 if self._return_all is False:
