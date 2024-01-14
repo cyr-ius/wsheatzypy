@@ -41,6 +41,8 @@ class Websocket:
         self._scheme = "wss" if use_tls else "ws"
         self._port = WSS_PORT if use_tls else WS_PORT
 
+        self.last_invalid_msg: dict[str, Any] | None = None
+
     @property
     def is_connected(self) -> bool:
         """Return if we are connect to the WebSocket."""
@@ -211,12 +213,13 @@ class Websocket:
                 message_data = message.json()
                 logger.debug("WEBSOCKET <<< %s", message_data)
                 data = message_data.get("data")
+                cmd = message_data.get("cmd")
+                self.last_invalid_msg = None
                 if isinstance(data, dict):
-                    match message_data.get("cmd"):
+                    match cmd:
                         case "s2c_invalid_msg":
-                            raise WebsocketError(
-                                "WEBSOCKET Invalid message (%s)", message_data
-                            )
+                            self.last_invalid_msg = message_data
+                            logger.warn("Received invalid message (%s)", message_data)
                         case "login_res":
                             if message_data.get("data", {}).get("success") is False:
                                 raise AuthenticationFailed(message_data)
