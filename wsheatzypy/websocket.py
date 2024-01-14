@@ -92,7 +92,8 @@ class Websocket:
             msg = "Not connected to a Heatzy WebSocket"
             raise WebsocketError(msg)
 
-        c2s = {"cmd": "c2s_write", "data": {"did": device_id, **payload}}
+        cmd = "c2s_raw" if payload.get("raw") else "c2s_write"
+        c2s = {"cmd": cmd, "data": {"did": device_id, **payload}}
         logger.debug("WEBSOCKET >>> %s", c2s)
         await self._client.send_json(c2s)
 
