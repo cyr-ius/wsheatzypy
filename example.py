@@ -2,6 +2,7 @@
 """
 This example can be run safely as it won't change anything.
 """
+
 import asyncio
 import logging
 

@@ -1,4 +1,5 @@
 """heatzypy package."""
+
 from .exception import (
     AuthenticationFailed,
     CommandFailed,
