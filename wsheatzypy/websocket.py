@@ -119,12 +119,11 @@ class Websocket:
         if self.is_connected:
             return
 
+        if not self.session:
+            raise WebsocketError("Session not found")
+
         if not self.bindings:
             await self.async_bindings()
-
-        if not self.session:
-            msg = "The device does not support WebSockets"
-            raise WebsocketError(msg)
 
         try:
             url = yurl.build(
